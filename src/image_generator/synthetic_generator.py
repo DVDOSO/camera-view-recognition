@@ -1,22 +1,3 @@
-"""
-Synthetic tampering data generator.
-
-Given an "acceptable" base image of a camera view, produces labeled variants
-simulating tampering (obstruction, movement) and benign environmental changes
-(lighting, noise, focus drift). Used to bootstrap a labeled dataset for
-evaluating and tuning the camera tampering detector without needing physical
-access to multiple cameras or hours of manual obstruction.
-
-All transforms are pure functions: (image, params) -> (image, metadata).
-All randomness is driven by an injected random.Random instance for
-reproducibility.
-
-Labels follow the schema in the project design doc:
-    NORMAL      - benign changes; detector should NOT alert
-    OBSTRUCTED  - something blocking the lens; detector SHOULD alert
-    MOVED       - field-of-view shift; detector SHOULD alert
-"""
-
 from __future__ import annotations
 
 import random
@@ -27,10 +8,6 @@ from typing import Callable, Dict, List, Tuple
 import cv2
 import numpy as np
 
-
-# ---------------------------------------------------------------------------
-# Types
-# ---------------------------------------------------------------------------
 
 class Label(str, Enum):
     NORMAL = "NORMAL"
@@ -55,16 +32,11 @@ class GeneratedSample:
         }
 
 
-# A transform takes an image and an rng, returns (modified_image, params_used).
 Transform = Callable[[np.ndarray, random.Random], Tuple[np.ndarray, Dict]]
 
 
-# ---------------------------------------------------------------------------
-# Obstruction transforms (label: OBSTRUCTED) — drastic, detector SHOULD alert
-# ---------------------------------------------------------------------------
-
+# Solid rectangle covering 60-90% of the frame — simulates tape/cardboard over lens.
 def large_cover(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Solid rectangle covering 60–90% of the frame — simulates tape/cardboard over lens."""
     out = image.copy()
     h, w = image.shape[:2]
     rect_w = rng.randint(int(w * 0.60), w)
@@ -77,8 +49,8 @@ def large_cover(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict
     return out, {"x": x, "y": y, "w": rect_w, "h": rect_h, "color": color}
 
 
+# Multiple overlapping solid rectangles covering the majority of the frame.
 def multi_block(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Multiple overlapping solid rectangles covering the majority of the frame."""
     out = image.copy()
     h, w = image.shape[:2]
     n_blocks = rng.randint(4, 8)
@@ -95,8 +67,8 @@ def multi_block(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict
     return out, {"blocks": blocks}
 
 
+# Simulate camera fully covered: nearly black frame with mild sensor noise.
 def full_blackout(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate camera fully covered: nearly black frame with mild sensor noise."""
     out = np.full_like(image, fill_value=rng.randint(0, 15))
     noise_flat = [rng.randint(-5, 4) for _ in range(image.size)]
     noise = np.array(noise_flat, dtype=np.int16).reshape(image.shape)
@@ -104,18 +76,14 @@ def full_blackout(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Di
     return out, {}
 
 
+# Simulate camera pointed at bright light source or fully covered with white material.
 def full_whiteout(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate camera pointed at bright light source or fully covered with white material."""
     out = np.full_like(image, fill_value=rng.randint(240, 255))
     return out, {}
 
 
-# ---------------------------------------------------------------------------
-# Movement transforms (label: MOVED) — drastic, detector SHOULD alert
-# ---------------------------------------------------------------------------
-
+# Simulate camera knocked hard: shift frame by 30–60% in a random direction.
 def large_translation(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate camera knocked hard: shift frame by 30–60% in a random direction."""
     h, w = image.shape[:2]
     dx = rng.randint(int(w * 0.30), int(w * 0.60)) * rng.choice([-1, 1])
     dy = rng.randint(int(h * 0.30), int(h * 0.60)) * rng.choice([-1, 1])
@@ -124,8 +92,8 @@ def large_translation(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray
     return out, {"dx": int(dx), "dy": int(dy)}
 
 
+# Simulate camera severely tilted: rotate 25-75 degrees.
 def large_rotation(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate camera severely tilted: rotate 25–75 degrees."""
     h, w = image.shape[:2]
     angle = rng.uniform(25.0, 75.0) * rng.choice([-1, 1])
     M = cv2.getRotationMatrix2D((w / 2, h / 2), angle, scale=1.0)
@@ -133,8 +101,8 @@ def large_rotation(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, D
     return out, {"angle": round(angle, 2)}
 
 
+# Simulate camera drastically repositioned: zoom in (1.6-2.5x) or out (0.2-0.5x).
 def extreme_zoom(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate camera drastically repositioned: zoom in (1.6–2.5x) or out (0.2–0.5x)."""
     h, w = image.shape[:2]
     factor = rng.choice([
         rng.uniform(1.6, 2.5),
@@ -145,8 +113,8 @@ def extreme_zoom(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dic
     return out, {"factor": round(factor, 3)}
 
 
+# Simulate camera repositioned at new angle: heavy perspective warp (30-50% corner jitter).
 def large_perspective(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate camera repositioned at new angle: heavy perspective warp (30–50% corner jitter)."""
     h, w = image.shape[:2]
     jx = int(w * 0.40)
     jy = int(h * 0.40)
@@ -162,12 +130,8 @@ def large_perspective(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray
     return out, {"corners": dst.tolist()}
 
 
-# ---------------------------------------------------------------------------
-# Environmental / subtle transforms (label: NORMAL — detector should NOT alert)
-# ---------------------------------------------------------------------------
-
+# Simulate grease/smudge: blurred translucent ellipse blended over the image.
 def translucent_smudge(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate grease/smudge: blurred translucent ellipse blended over the image."""
     h, w = image.shape[:2]
     cx = rng.randint(int(w * 0.2), int(w * 0.8))
     cy = rng.randint(int(h * 0.2), int(h * 0.8))
@@ -188,8 +152,8 @@ def translucent_smudge(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarra
     }
 
 
+# Simulate a small piece of tape: tiny rectangle covering 3–8% of the frame.
 def subtle_tape(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate a small piece of tape: tiny rectangle covering 3–8% of the frame."""
     out = image.copy()
     h, w = image.shape[:2]
     rect_w = rng.randint(int(w * 0.05), int(w * 0.15))
@@ -202,8 +166,8 @@ def subtle_tape(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict
     return out, {"x": x, "y": y, "w": rect_w, "h": rect_h, "color": color}
 
 
+# Simulate a gentle camera nudge: shift frame by 2-5%.
 def minor_shift(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate a gentle camera nudge: shift frame by 2–5%."""
     h, w = image.shape[:2]
     dx = rng.randint(int(w * 0.02), int(w * 0.05)) * rng.choice([-1, 1])
     dy = rng.randint(int(h * 0.02), int(h * 0.05)) * rng.choice([-1, 1])
@@ -212,8 +176,8 @@ def minor_shift(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict
     return out, {"dx": int(dx), "dy": int(dy)}
 
 
+# Simulate a very slight camera tilt: rotate 0.5-3 degrees.
 def minor_tilt(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate a very slight camera tilt: rotate 0.5–3 degrees."""
     h, w = image.shape[:2]
     angle = rng.uniform(0.5, 3.0) * rng.choice([-1, 1])
     M = cv2.getRotationMatrix2D((w / 2, h / 2), angle, scale=1.0)
@@ -221,8 +185,8 @@ def minor_tilt(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]
     return out, {"angle": round(angle, 2)}
 
 
+# Simulate slight camera movement: zoom 0.97-1.03x.
 def minor_zoom(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate slight camera movement: zoom 0.97–1.03x."""
     h, w = image.shape[:2]
     factor = rng.uniform(0.97, 1.03)
     M = cv2.getRotationMatrix2D((w / 2, h / 2), 0, scale=factor)
@@ -230,16 +194,16 @@ def minor_zoom(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]
     return out, {"factor": round(factor, 3)}
 
 
+# Simulate time-of-day lighting changes.
 def brightness_contrast(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate time-of-day lighting changes."""
     alpha = rng.uniform(0.65, 1.35)
     beta = rng.uniform(-40.0, 40.0)
     out = np.clip(image.astype(np.float32) * alpha + beta, 0, 255).astype(np.uint8)
     return out, {"alpha": round(alpha, 3), "beta": round(beta, 2)}
 
 
+# Simulate low-light sensor noise: additive Gaussian noise.
 def sensor_noise(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate low-light sensor noise: additive Gaussian noise."""
     sigma = rng.uniform(5.0, 20.0)
     noise_flat = [rng.gauss(0, sigma) for _ in range(image.size)]
     noise = np.array(noise_flat, dtype=np.float32).reshape(image.shape)
@@ -247,21 +211,17 @@ def sensor_noise(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dic
     return out, {"sigma": round(sigma, 2)}
 
 
+# Simulate slight focus drift: mild Gaussian blur applied uniformly.
 def focus_drift(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """Simulate slight focus drift: mild Gaussian blur applied uniformly."""
     k = rng.choice([3, 5, 7])
     out = cv2.GaussianBlur(image, (k, k), 0)
     return out, {"kernel": k}
 
 
+# No-op: returns the base image unchanged. Anchors the NORMAL class.
 def identity(image: np.ndarray, rng: random.Random) -> Tuple[np.ndarray, Dict]:
-    """No-op: returns the base image unchanged. Anchors the NORMAL class."""
     return image.copy(), {}
 
-
-# ---------------------------------------------------------------------------
-# Transform registry
-# ---------------------------------------------------------------------------
 
 OBSTRUCTION_TRANSFORMS: Dict[str, Transform] = {
     "large_cover": large_cover,
@@ -295,10 +255,6 @@ TRANSFORMS_BY_LABEL: Dict[Label, Dict[str, Transform]] = {
     Label.NORMAL: NORMAL_TRANSFORMS,
 }
 
-
-# ---------------------------------------------------------------------------
-# Batch orchestrator
-# ---------------------------------------------------------------------------
 
 DEFAULT_MIX: Dict[Label, float] = {
     Label.OBSTRUCTED: 0.45,
@@ -335,18 +291,6 @@ def generate_batch(
     mix: Dict[Label, float] = None,
     seed: int = 0,
 ) -> List[GeneratedSample]:
-    """
-    Generate `n` synthetic samples from a single base image.
-
-    Args:
-        base_image: BGR image (as loaded by cv2.imread). Must not be None.
-        n: number of samples to generate.
-        mix: target label proportions. Must sum to 1.0. Defaults to DEFAULT_MIX.
-        seed: deterministic seed; same (base_image, n, mix, seed) -> same batch.
-
-    Returns:
-        A list of GeneratedSample. Order is shuffled within the batch.
-    """
     if base_image is None:
         raise ValueError("base_image is None — did cv2.imread fail to read the path?")
     if n <= 0:
