@@ -1,2 +1,6 @@
 images/*
 src/test.py
+.venv/
+.claude/
+generated/*
+**/__pycache__/
