@@ -3,3 +3,11 @@ test.py
 .claude/
 **/__pycache__/
 tests/generated/*
+*.pyc
+.env
+storage/base/*
+storage/captures/*
+storage/annotated/*
+!storage/base/.gitkeep
+!storage/captures/.gitkeep
+!storage/annotated/.gitkeep
