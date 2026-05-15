@@ -1,6 +1,6 @@
 import cv2
 import time
-import image_compare
+import app.services.image_compare as image_compare
 import os
 import util
 
