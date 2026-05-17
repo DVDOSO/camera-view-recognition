@@ -1,6 +1,12 @@
 test.py
 .venv/
 .claude/
+
+# AI tooling
+CLAUDE.md
+AGENTS.md
+.cursor/
+.aider*
 **/__pycache__/
 tests/generated/*
 *.pyc
