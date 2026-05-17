@@ -3,7 +3,9 @@ import uuid
 
 import cv2
 from fastapi import APIRouter, Depends, HTTPException, status
+from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete, select
 
 from app.config import settings
 from app.db import get_session
@@ -53,6 +55,7 @@ async def generate_synthetic_batch(
             ssim_min=thresholds.ssim_min,
             match_ratio_min=thresholds.match_ratio_min,
             inliers_min=thresholds.inliers_min,
+            homography_inlier_ratio_min=thresholds.homography_inlier_ratio_min
         )
 
         image = Image(
@@ -62,6 +65,7 @@ async def generate_synthetic_batch(
             ssim_score=result.ssim_score,
             match_ratio=result.match_ratio,
             inliers=result.inliers,
+            homography_inlier_ratio=result.homography_inlier_ratio,
             script_decision=result.script_decision,
             synthetic_label=_SYNTH_TO_HUMAN[sample.label],
             synthetic_transform=sample.transform,
@@ -73,3 +77,22 @@ async def generate_synthetic_batch(
 
     await session.commit()
     return GenerateBatchResponse(generated=len(created_ids), image_ids=created_ids)
+
+
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_synthetic_images(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(
+        select(Image.image_path).where(Image.synthetic_label.is_not(None))
+    )
+    paths = result.scalars().all()
+
+    await session.execute(
+        delete(Image).where(Image.synthetic_label.is_not(None))
+    )
+    await session.commit()
+
+    for path in paths:
+        try:
+            Path(path).unlink(missing_ok=True)
+        except OSError:
+            pass

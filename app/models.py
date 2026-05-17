@@ -43,6 +43,7 @@ class Image(Base):
     ssim_score: Mapped[float] = mapped_column(Float)
     match_ratio: Mapped[float] = mapped_column(Float)
     inliers: Mapped[int] = mapped_column(Integer)
+    homography_inlier_ratio: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
     script_decision: Mapped[bool] = mapped_column(Boolean)
 
     human_label: Mapped[Optional[HumanLabel]] = mapped_column(SqlEnum(HumanLabel, name="human_label_enum"), nullable=True)
@@ -62,6 +63,7 @@ class Threshold(Base):
     ssim_min: Mapped[float] = mapped_column(Float)
     match_ratio_min: Mapped[float] = mapped_column(Float)
     inliers_min: Mapped[int] = mapped_column(Integer)
+    homography_inlier_ratio_min: Mapped[float] = mapped_column(Float, default=0.40, server_default="0.40")
 
     f1: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     precision: Mapped[Optional[float]] = mapped_column(Float, nullable=True)

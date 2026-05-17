@@ -1,12 +1,14 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
 from app.models import HumanLabel, Image, Threshold
 from app.schemas import MetricsOut, ThresholdOut
+from app.services.autotuner import tune
+from app.services.thresholds import get_active
 
 router = APIRouter(tags=["metrics"])
 
@@ -72,3 +74,19 @@ async def list_thresholds(session: AsyncSession = Depends(get_session)):
         select(Threshold).order_by(Threshold.created_at.desc())
     )
     return result.scalars().all()
+
+
+# Auto-tuner
+@router.post("/thresholds/tune", status_code=status.HTTP_201_CREATED)
+async def tune_thresholds(session: AsyncSession = Depends(get_session)):
+    try:
+        result = await tune(session)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+    return result
+
+
+# Get active thresholds
+@router.get("/thresholds/active", response_model=ThresholdOut)
+async def get_active_threshold(session: AsyncSession = Depends(get_session)):
+    return await get_active(session)

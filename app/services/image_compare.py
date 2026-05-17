@@ -150,7 +150,7 @@ def compare_images(
 
     # Conservative decision:
     # - similar if either SSIM is strong OR ORB/homography is strong
-    similar = ssim_similar or orb_similar
+    similar = ssim_similar and orb_similar
 
     if similar:
         if orb_similar and not ssim_similar:
