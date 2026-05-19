@@ -154,7 +154,11 @@ export default function ComparePage() {
             ) : (
               <Select value={cameraId} onValueChange={(v) => v && setCameraId(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a camera…" />
+                  <SelectValue placeholder="Select a camera…">
+                    {cameraId
+                      ? (cameras.find((c) => c.camera_id === cameraId)?.name ?? cameraId)
+                      : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {cameras.map((c) => (

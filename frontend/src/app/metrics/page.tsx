@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, Sparkles, Wand2 } from 'lucide-react'
 import {
   getMetrics,
   getThresholds,
@@ -276,7 +276,11 @@ export default function MetricsPage() {
               <Label>Camera</Label>
               <Select value={genCamera} onValueChange={(v) => v && setGenCamera(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select camera…" />
+                  <SelectValue placeholder="Select camera…">
+                    {genCamera
+                      ? (cameras.find((c) => c.camera_id === genCamera)?.name ?? genCamera)
+                      : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {cameras.map((c) => (
@@ -299,11 +303,22 @@ export default function MetricsPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Random seed</Label>
-              <Input
-                type="number"
-                value={genSeed}
-                onChange={(e) => setGenSeed(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  type="number"
+                  value={genSeed}
+                  onChange={(e) => setGenSeed(e.target.value)}
+                  className="pr-8"
+                />
+                <button
+                  type="button"
+                  onClick={() => setGenSeed(String(Math.floor(Math.random() * 1_000_000)))}
+                  title="Randomize seed"
+                  className="absolute inset-y-0 right-0 flex items-center px-2 text-gray-400 hover:text-gray-600"
+                >
+                  <Wand2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
           <div className="flex gap-2">
@@ -311,6 +326,7 @@ export default function MetricsPage() {
               onClick={() => generateMutation.mutate()}
               disabled={!genCamera || generateMutation.isPending}
             >
+              {generateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               {generateMutation.isPending ? 'Generating…' : 'Generate'}
             </Button>
             <Button

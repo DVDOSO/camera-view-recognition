@@ -172,7 +172,11 @@ export default function LabelPage() {
             }}
           >
             <SelectTrigger className="w-40">
-              <SelectValue />
+              <SelectValue>
+                {cameraId === 'ALL'
+                  ? 'All cameras'
+                  : (cameras.find((c) => c.camera_id === cameraId)?.name ?? cameraId)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All cameras</SelectItem>

@@ -71,7 +71,7 @@ async def compare_image(
             ssim_min=thresholds.ssim_min,
             match_ratio_min=thresholds.match_ratio_min,
             inliers_min=thresholds.inliers_min,
-            homography_inlier_ratio_min=thresholds.homography_inlier_min,
+            homography_inlier_ratio_min=thresholds.homography_inlier_ratio_min,
         )
     except FileNotFoundError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
