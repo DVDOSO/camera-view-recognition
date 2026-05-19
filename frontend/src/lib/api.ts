@@ -45,6 +45,15 @@ export async function updateCamera(
   )
 }
 
+export async function uploadBaseImage(file: File): Promise<string> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const data = await handleResponse<{ path: string }>(
+    await fetch(`${API_BASE}/cameras/upload-base`, { method: 'POST', body: fd }),
+  )
+  return data.path
+}
+
 export async function deleteCamera(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/cameras/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('Failed to delete camera')

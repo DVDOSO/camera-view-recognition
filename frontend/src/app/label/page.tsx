@@ -149,6 +149,7 @@ export default function LabelPage() {
     onMutate: ({ id }) => setLabelingId(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['images', cameraId] })
+      qc.invalidateQueries({ queryKey: ['metrics'] })
       toast.success('Label saved')
     },
     onError: (err: Error) => toast.error(err.message),

@@ -1,14 +1,25 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.db import get_session
 from app.models import Camera
 from app.schemas import CameraCreate, CameraOut, CameraUpdate
+from app.services import storage
 
 router = APIRouter(prefix="/cameras", tags=["cameras"])
+
+
+@router.post("/upload-base")
+async def upload_base_image(file: UploadFile = File(...)):
+    data = await file.read()
+    if not data:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "uploaded file is empty")
+    path = storage.save_bytes(data, settings.base_dir)
+    return {"path": str(path)}
 
 
 @router.get("", response_model=list[CameraOut])
