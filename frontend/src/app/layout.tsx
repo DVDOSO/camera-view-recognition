@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'CamWatch',
+  title: 'Camera Watch',
   description: 'Camera view recognition dashboard',
+  icons: { icon: '/camera.png' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
