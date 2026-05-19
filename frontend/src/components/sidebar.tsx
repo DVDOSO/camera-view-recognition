@@ -2,14 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Camera, ImageIcon, BarChart2, Tag } from 'lucide-react'
+import { BookOpen, Camera, ImageIcon, BarChart2, Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const nav = [
+  { href: '/cameras', icon: Camera, label: 'Cameras' },
   { href: '/compare', icon: ImageIcon, label: 'Compare' },
   { href: '/label', icon: Tag, label: 'Label' },
   { href: '/metrics', icon: BarChart2, label: 'Metrics' },
-  { href: '/cameras', icon: Camera, label: 'Cameras' },
+  { href: '/guide', icon: BookOpen, label: 'Guide' },
 ]
 
 export function Sidebar() {
@@ -19,7 +20,7 @@ export function Sidebar() {
       <div className="px-4 py-4 border-b">
         <div className="flex items-center gap-2">
           <Camera className="h-4 w-4 text-blue-600" />
-          <span className="font-semibold text-sm tracking-tight">CamWatch</span>
+          <span className="font-semibold text-sm tracking-tight">Camera Watch</span>
         </div>
       </div>
       <nav className="flex-1 p-2 space-y-0.5">
