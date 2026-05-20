@@ -16,9 +16,5 @@ class Settings(BaseSettings):
     def captures_dir(self) -> Path:
         return self.storage_dir / "captures"
 
-    @property
-    def annotated_dir(self) -> Path:
-        return self.storage_dir / "annotated"
-
 
 settings = Settings()

@@ -2,6 +2,10 @@ import type { Camera, CameraImage, GenerateResponse, HumanLabel, Metrics, Thresh
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
+export function annotatedImageUrl(imageId: string): string {
+  return `${API_BASE}/images/${imageId}/annotated`
+}
+
 export function storageUrl(filePath: string): string {
   if (!filePath) return ''
   const normalized = filePath.replace(/\\/g, '/')

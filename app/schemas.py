@@ -37,10 +37,10 @@ class ImageOut(BaseModel):
     camera_id: uuid.UUID
     image_path: str
     base_image_path: str
-    annotated_path: Optional[str]
     ssim_score: float
     match_ratio: float
     inliers: int
+    homography_inlier_ratio: float
     script_decision: bool
     human_label: Optional[HumanLabel]
     synthetic_label: Optional[HumanLabel]

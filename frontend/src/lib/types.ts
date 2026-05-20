@@ -12,10 +12,10 @@ export interface CameraImage {
   camera_id: string
   image_path: string
   base_image_path: string
-  annotated_path: string | null
   ssim_score: number
   match_ratio: number
   inliers: number
+  homography_inlier_ratio: number
   script_decision: boolean
   human_label: HumanLabel | null
   synthetic_label: HumanLabel | null

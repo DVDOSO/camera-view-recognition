@@ -8,7 +8,7 @@ from app.config import settings
 
 
 def ensure_dirs() -> None:
-    for d in (settings.base_dir, settings.captures_dir, settings.annotated_dir):
+    for d in (settings.base_dir, settings.captures_dir):
         d.mkdir(parents=True, exist_ok=True)
 
 

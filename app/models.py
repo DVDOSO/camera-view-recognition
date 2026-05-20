@@ -38,7 +38,6 @@ class Image(Base):
     camera_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("cameras.camera_id", ondelete="CASCADE"), index=True)
     image_path: Mapped[str] = mapped_column(String(1024))
     base_image_path: Mapped[str] = mapped_column(String(1024))
-    annotated_path: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
 
     ssim_score: Mapped[float] = mapped_column(Float)
     match_ratio: Mapped[float] = mapped_column(Float)

@@ -1,6 +1,10 @@
+import io
 import uuid
 
+import cv2
+import numpy as np
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -90,6 +94,70 @@ async def compare_image(
     await session.commit()
     await session.refresh(image)
     return image
+
+
+@router.get("/{image_id}/annotated")
+async def get_annotated_image(image_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    image = await session.get(Image, image_id)
+    if image is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "image not found")
+
+    ref_bgr = cv2.imread(image.base_image_path)
+    cap_bgr = cv2.imread(image.image_path)
+    if ref_bgr is None or cap_bgr is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "image files not found on disk")
+
+    cap_bgr = cv2.resize(cap_bgr, (ref_bgr.shape[1], ref_bgr.shape[0]))
+
+    max_h = 440
+    if ref_bgr.shape[0] > max_h:
+        scale = max_h / ref_bgr.shape[0]
+        new_w = int(ref_bgr.shape[1] * scale)
+        ref_bgr = cv2.resize(ref_bgr, (new_w, max_h))
+        cap_bgr = cv2.resize(cap_bgr, (new_w, max_h))
+
+    ref_gray = cv2.cvtColor(ref_bgr, cv2.COLOR_BGR2GRAY)
+    cap_gray = cv2.cvtColor(cap_bgr, cv2.COLOR_BGR2GRAY)
+
+    orb = cv2.ORB_create(nfeatures=600)
+    kp1, des1 = orb.detectAndCompute(ref_gray, None)
+    kp2, des2 = orb.detectAndCompute(cap_gray, None)
+
+    annotated = None
+    if des1 is not None and des2 is not None and len(kp1) >= 2 and len(kp2) >= 2:
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING)
+        knn = bf.knnMatch(des1, des2, k=2)
+        good = [m for pair in knn if len(pair) == 2 for m, n in [pair] if m.distance < 0.75 * n.distance]
+
+        inlier_pairs: set = set()
+        if len(good) >= 4:
+            src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+            dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+            _, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+            if mask is not None:
+                inlier_pairs = {(good[i].queryIdx, good[i].trainIdx) for i, f in enumerate(mask.ravel()) if f}
+
+        display = sorted(good, key=lambda m: m.distance)[:80]
+        draw_mask = [1 if (m.queryIdx, m.trainIdx) in inlier_pairs else 0 for m in display] or None
+
+        annotated = cv2.drawMatches(
+            ref_bgr, kp1, cap_bgr, kp2, display, None,
+            matchColor=(50, 205, 50),
+            singlePointColor=(150, 150, 150),
+            matchesMask=draw_mask,
+            flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
+        )
+
+    if annotated is None:
+        annotated = np.hstack([ref_bgr, cap_bgr])
+
+    font, scale_f, thick = cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2
+    for text, x in [("Reference", 10), ("Captured", ref_bgr.shape[1] + 10)]:
+        cv2.putText(annotated, text, (x, 24), font, scale_f, (255, 255, 255), thick)
+        cv2.putText(annotated, text, (x, 24), font, scale_f, (30, 30, 30), 1)
+
+    _, buf = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 88])
+    return StreamingResponse(io.BytesIO(buf.tobytes()), media_type="image/jpeg")
 
 
 @router.patch("/{image_id}/label", response_model=ImageOut)
