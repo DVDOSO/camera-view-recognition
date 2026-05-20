@@ -13,7 +13,5 @@ tests/generated/*
 .env
 storage/base/*
 storage/captures/*
-storage/annotated/*
 !storage/base/.gitkeep
 !storage/captures/.gitkeep
-!storage/annotated/.gitkeep
