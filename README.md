@@ -4,6 +4,8 @@ A full-stack dashboard for detecting camera obstructions and view changes using 
 
 Upload a camera frame and CamWatch compares it against a known-good reference image, flagging it as **ALERT** (obstructed or moved) or **NORMAL** using three complementary similarity metrics.
 
+![Compare page showing an ALERT result](docs/screenshots/compare.png)
+
 ---
 
 ## Stack
@@ -24,6 +26,8 @@ Upload a camera frame and CamWatch compares it against a known-good reference im
 - Create named cameras and upload one or more **base (reference) images** directly from the browser
 - Base images are stored in `storage/base/` and persisted across restarts via Docker volumes
 - Edit or delete cameras at any time; the camera list shows a thumbnail of the first base image
+
+![Cameras page](docs/screenshots/cameras.png)
 
 ### Compare
 Upload a new frame for a camera and the backend runs three similarity checks against every base image, taking the best match:
@@ -48,11 +52,15 @@ The frame is marked **ALERT** if any metric falls below its configured threshold
 | **MOVED** | Camera has been redirected from its original position |
 | **OTHER** | Ambiguous frame — excluded from precision/recall calculations |
 
+![Label page](docs/screenshots/label.png)
+
 ### Metrics
 - Live **F1, Precision, Recall** scores computed over all labeled images
 - **Confusion matrix** (TP / FP / FN / TN) with positive class = OBSTRUCTED or MOVED
 - **Threshold history table** showing every tuning run with its scores and sample counts
 - **Active Threshold** panel showing the currently applied SSIM min, Match ratio min, and Inliers min
+
+![Metrics page](docs/screenshots/metrics.png)
 
 ### Auto-Tune
 Grid-searches over SSIM min, Match ratio min, and Inliers min to find the combination that maximises F1 on your labeled data. Requires ≥ 30 labeled samples. The winning threshold is activated immediately.
@@ -65,6 +73,11 @@ Generates labeled images automatically by applying 16 transforms to a camera's b
 **NORMAL transforms:** `brightness_contrast`, `sensor_noise`, `focus_drift`, `identity`, `translucent_smudge`, `subtle_tape`, `minor_shift`, `minor_tilt`, `minor_zoom`
 
 Set a seed for reproducible results or randomise it with the wand button. Synthetic images are tagged with their transform name and can be cleared in bulk.
+
+### Guide
+An in-app walkthrough of the full workflow — add a camera, upload base images, compare frames, label, auto-tune — with an explanation of each metric and label.
+
+![Guide page](docs/screenshots/guide.png)
 
 ---
 
@@ -140,6 +153,7 @@ The `storage/` directory is bind-mounted (`./storage:/app/storage`) so files per
 │       ├── components/     # Sidebar, shared UI
 │       └── lib/            # API client, types
 ├── alembic/                # Database migrations
+├── docs/screenshots/       # README screenshots
 ├── storage/                # Persisted image files (gitignored)
 └── docker-compose.yml
 ```
